@@ -3,7 +3,7 @@
 좋아하는 곡을 모아 두는 한 장짜리 웹페이지입니다.
 왼쪽에 커버와 이름, 오른쪽에 트랙 목록이 놓이고, 곡을 누르면 바로 재생되면서 아래에 그 곡에 대한 코멘트가 나타납니다.
 
-**→ https://아이디.github.io/저장소이름/**
+**→ https://legion-orca.github.io/playlist/playlist-builder.html**
 
 ---
 
