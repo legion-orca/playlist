@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>새벽 세 시의 편지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   색상 — 여기만 바꾸면 전체 색이 바뀝니다
+   ========================================================= */
+:root{
+  --bg:     #ffffff;   /* 바탕색 */
+  --text:   #111111;   /* 글씨색 */
+  --accent: #8a8a8a;   /* 포인트 컬러 */
+
+  /* 파생 색 (보통 안 건드려도 됩니다)
+     어두운 바탕으로 바꿀 때는 아래 세 줄도 같이 바꾸세요.
+     예) 바탕 #111111 / 글씨 #ffffff 이라면
+         --line: #3d3d3d;  --muted: #9c9c9c;  --faint: #1e1e1e; */
+  --line:  #ececec;    /* 구분선 */
+  --muted: #9a9a9a;    /* 흐린 글씨 */
+  --faint: #f6f6f6;    /* 아주 옅은 면 */
+  --hl:    rgba(138,138,138,.30);  /* 코멘트 하이라이트 색 */
+  --hover: rgba(138,138,138,.16);  /* 목록에 마우스 올렸을 때 (포인트색 반투명) */
+
+  /* 커버 크기 — 화면이 좁아지면 알아서 줄어듭니다 */
+  --cover: clamp(112px, 24vw, 220px);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);color:var(--text);
+  font-family:"IBM Plex Sans KR",system-ui,-apple-system,sans-serif;
+  font-weight:300;-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+.page{flex:1 0 auto;padding-bottom:64px;position:relative;z-index:1;overflow-x:clip}
+
+/* 전체 배경 이미지 */
+#pageBg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+
+.wrap{
+  max-width:864px;margin:0 auto;
+  padding:clamp(44px,9vw,120px) clamp(16px,4vw,40px) 0;
+  display:grid;
+  grid-template-columns:var(--cover) minmax(0,1fr);
+  gap:clamp(24px,9vw,128px);
+  align-items:start;
+}
+
+/* ---------- 왼쪽: 커버 + 제목 ---------- */
+.side{position:sticky;top:88px;text-align:center}
+.side-inner{position:relative}
+.side-inner > *:not(.side-bg){position:relative;z-index:1}
+
+/* 커버 구역 뒤에 깔리는 배경 */
+/* 커버 바로 뒤에, 커버와 똑같은 구도로 크게 깔리는 배경 */
+.side-bg{
+  position:absolute;left:50%;top:calc(var(--cover) / 2);
+  transform:translate(-50%,-50%);
+  width:calc(var(--cover) * var(--glow-spread, 2.2));
+  height:calc(var(--cover) * var(--glow-spread, 2.2));
+  z-index:0;pointer-events:none;
+  -webkit-mask-image:radial-gradient(closest-side, #000 26%, rgba(0,0,0,.5) 58%, transparent 100%);
+  mask-image:radial-gradient(closest-side, #000 26%, rgba(0,0,0,.5) 58%, transparent 100%);
+}
+.side-bg img{width:100%;height:100%;object-fit:cover;display:block}
+.wrap,.notes{position:relative;z-index:1}
+
+.cover{
+  position:relative;width:var(--cover);margin:0 auto;aspect-ratio:1;overflow:hidden;
+  background:var(--faint);box-shadow:0 14px 40px rgba(0,0,0,.24),0 4px 12px rgba(0,0,0,.12);
+}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cover .empty{
+  position:absolute;inset:0;display:grid;place-items:center;text-align:center;
+  border:1px dashed var(--line);padding:16px;line-height:1.9;
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;color:var(--muted);
+}
+
+.eyebrow{
+  margin:clamp(22px,3.4vw,36px) 0 0;font-family:"IBM Plex Mono",monospace;font-size:9px;
+  letter-spacing:.3em;text-transform:uppercase;color:var(--accent);
+}
+h1{
+  margin:14px 0 0;font-size:clamp(17px,2.4vw,22px);line-height:1.5;font-weight:400;
+  letter-spacing:-.01em;word-break:keep-all;
+}
+.sub{margin:12px 0 0;font-size:clamp(10.5px,1.35vw,12px);color:var(--muted);letter-spacing:.02em;word-break:keep-all}
+.count{
+  display:inline-block;margin:clamp(20px,3vw,32px) 0 0;padding-top:clamp(14px,2vw,20px);
+  border-top:1px solid var(--line);min-width:110px;
+  font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.2em;color:var(--muted);
+}
+.count b{color:var(--accent);font-weight:inherit}
+
+/* ---------- 오른쪽: 트랙 목록 ---------- */
+.tracks{border-top:1px solid var(--line)}
+.tracks.scrolls{
+  overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--line) transparent;
+}
+.tracks.scrolls::-webkit-scrollbar{width:4px}
+.tracks.scrolls::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+
+.row{
+  display:grid;
+  grid-template-columns:clamp(26px,3.8vw,36px) minmax(0,1fr) clamp(34px,5.4vw,46px);
+  gap:clamp(9px,1.9vw,16px);align-items:center;
+  width:100%;text-align:left;padding:clamp(10px,1.6vw,14px) 4px;
+  background:none;border:0;border-bottom:1px solid var(--line);
+  color:inherit;font:inherit;cursor:pointer;position:relative;transition:background .18s;
+}
+.row::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--accent);transform:scaleY(0);transition:transform .2s;
+}
+.row:hover{background:var(--hover)}
+.row:hover .title{color:var(--accent)}
+.row:hover::before{transform:scaleY(1)}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.num{
+  display:block;padding-left:clamp(2px,1vw,8px);
+  font-family:"IBM Plex Mono",monospace;font-size:clamp(9px,1.2vw,10px);
+  letter-spacing:.06em;color:var(--muted);
+}
+.meta{display:block;min-width:0}
+.title{
+  display:block;font-size:clamp(11.5px,1.5vw,13px);line-height:1.5;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.artist{
+  display:block;font-size:clamp(9.5px,1.25vw,10.5px);color:var(--muted);margin-top:4px;letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.art{display:block;width:clamp(34px,5.4vw,46px);margin-right:clamp(6px,1.4vw,14px);aspect-ratio:1;overflow:hidden;background:var(--faint)}
+.art img,.p-art img{font-size:0;color:transparent}
+.art img{width:100%;height:100%;object-fit:cover;display:block}
+.art img.yt{transform:scale(1.35)}
+
+/* 재생 중 표시 */
+.row.on .title{color:var(--accent)}
+.row.on::before{transform:scaleY(1)}
+.eq{display:none}
+.row.on .num b{display:none}
+.row.on .eq{display:flex;gap:2px;align-items:flex-end;height:10px}
+.eq i{width:2px;background:var(--accent);animation:eq .9s ease-in-out infinite}
+.eq i:nth-child(1){height:60%}
+.eq i:nth-child(2){height:100%;animation-delay:.18s}
+.eq i:nth-child(3){height:40%;animation-delay:.36s}
+.row.paused .eq i{animation-play-state:paused}
+@keyframes eq{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+
+.tracks-empty{padding:56px 0;text-align:center;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
+
+/* ---------- 아래: 선택한 곡의 코멘트 ---------- */
+.notes{max-width:640px;margin:0 auto;padding:112px 48px 0}
+.notes-head{
+  text-align:center;font-family:"IBM Plex Mono",monospace;font-size:9px;
+  letter-spacing:.3em;text-transform:uppercase;color:var(--accent);
+  padding-bottom:44px;scroll-margin-top:72px;
+}
+.note{opacity:0;transform:translateY(8px);transition:opacity .35s ease,transform .35s ease}
+.note.in{opacity:1;transform:none}
+.note-no{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.18em;
+  color:var(--accent);display:block;
+}
+.note-title{margin:12px 0 0;font-size:16px;font-weight:400;line-height:1.5;word-break:keep-all}
+.note-artist{margin:5px 0 0;font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.note-body{
+  margin:22px 0 0;font-size:14px;line-height:2.1;font-weight:300;
+  color:var(--text);word-break:keep-all;white-space:pre-wrap;
+}
+.note-body strong{font-weight:600}
+.note-body em{font-style:italic}
+.note-body u{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.note-body s{opacity:.6}
+.note-body mark{background:var(--hl);color:inherit;padding:0 .18em;border-radius:2px}
+.note-body .accent{color:var(--accent)}
+.note-body hr{border:0;border-top:1px solid var(--line);margin:28px 0}
+
+/* ---------- 재생 바 (항상 화면 아래에 붙음) ---------- */
+.player{
+  position:sticky;bottom:0;z-index:20;flex:none;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);
+  display:none;align-items:center;gap:14px;padding:12px 20px;
+}
+.player.on{display:flex;flex-wrap:wrap}
+
+/* 위쪽 얇은 진행 막대 */
+.p-bar{position:absolute;left:0;right:0;top:-1px;height:3px;background:var(--line);cursor:pointer}
+.p-fill{height:100%;width:0;background:var(--accent);transition:width .2s linear}
+
+.p-art{width:42px;height:42px;flex:none;overflow:hidden;background:var(--faint)}
+.p-art img{width:100%;height:100%;object-fit:cover}
+.p-art img.yt{transform:scale(1.35)}
+.p-meta{min-width:100px;flex:1}
+.p-title{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-artist{font-size:10.5px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-time{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--muted);
+  flex:none;letter-spacing:.04em;white-space:nowrap;
+}
+
+.p-nav{display:flex;gap:4px;align-items:center;flex:none}
+.p-nav button,.p-close,.p-mute{
+  width:30px;height:30px;display:grid;place-items:center;
+  border-radius:50%;border:1px solid transparent;
+  background:none;color:var(--text);cursor:pointer;padding:0;
+}
+.p-nav button:hover,.p-close:hover,.p-mute:hover{border-color:var(--line);color:var(--accent)}
+.p-nav button svg,.p-close svg,.p-mute svg{width:15px;height:15px;fill:currentColor;display:block}
+#pPlay{width:36px;height:36px;border:1px solid var(--line)}
+#pPlay svg{width:16px;height:16px}
+#pPlay:hover{border-color:var(--accent)}
+
+.p-vol{display:flex;align-items:center;gap:6px;flex:none}
+#pVol{
+  -webkit-appearance:none;appearance:none;width:72px;height:3px;
+  background:var(--line);border-radius:3px;outline:none;cursor:pointer;
+}
+#pVol::-webkit-slider-thumb{
+  -webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+}
+#pVol::-moz-range-thumb{width:11px;height:11px;border:0;border-radius:50%;background:var(--accent);cursor:pointer}
+
+.p-media{flex:none}
+#ytHost{width:112px;height:63px}
+#ytHost iframe{width:100%;height:100%;border:0;display:block}
+#audioHost{display:none}
+
+@media (max-width:860px){
+  .notes{padding:80px clamp(16px,4vw,48px) 0}
+  .player{gap:10px;padding:10px 14px}
+  .p-time{display:none}
+}
+
+/* 640px 아래(휴대폰)에서는 세로로 쌓입니다 */
+@media (max-width:640px){
+  :root{--cover:min(220px, 60vw)}
+  .wrap{
+    grid-template-columns:minmax(0,1fr);
+    gap:44px;padding:44px 40px 0;justify-items:center;
+  }
+  .side{position:static;width:100%;max-width:300px}
+  .tracks{width:100%}
+  h1{font-size:20px}
+  .sub{font-size:12px}
+  .row{grid-template-columns:32px minmax(0,1fr) 44px;gap:14px;padding:14px 4px}
+  .num{font-size:10px;padding-left:6px}
+  .title{font-size:13px}
+  .artist{font-size:10.5px}
+  .art{width:44px;margin-right:8px}
+  .notes{padding:64px 40px 0}
+}
+@media (max-width:560px){
+  #ytHost{width:76px;height:43px}
+  #pVol{width:52px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+
+<body>
+
+<div id="pageBg"></div>
+
+<div class="page">
+  <main class="wrap">
+    <aside class="side">
+     <div class="side-inner">
+      <div class="side-bg" id="sideBg"><img id="sideBgImg" alt=""></div>
+      <div class="cover" id="cover"></div>
+      <p class="eyebrow" id="eyebrow"></p>
+      <h1 id="plTitle"></h1>
+      <p class="sub" id="plSub"></p>
+      <p class="count" id="plCount"></p>
+     </div>
+    </aside>
+
+    <section class="tracks" id="tracks"></section>
+  </main>
+
+  <section class="notes" id="notes" hidden></section>
+</div>
+
+<div class="player" id="player">
+  <div class="p-bar" id="pBar"><div class="p-fill" id="pFill"></div></div>
+
+  <div class="p-art"><img id="pImg" alt="" referrerpolicy="no-referrer" onerror="thumbErr(this)" hidden></div>
+  <div class="p-meta">
+    <div class="p-title" id="pTitle"></div>
+    <div class="p-artist" id="pArtist"></div>
+  </div>
+  <div class="p-time" id="pTime">0:00 / 0:00</div>
+
+  <div class="p-nav">
+    <button id="pPrev" type="button" aria-label="이전 곡"></button>
+    <button id="pPlay" type="button" aria-label="재생"></button>
+    <button id="pNext" type="button" aria-label="다음 곡"></button>
+  </div>
+
+  <div class="p-vol">
+    <button class="p-mute" id="pMute" type="button" aria-label="음소거"></button>
+    <input type="range" id="pVol" min="0" max="100" value="80" aria-label="음량">
+  </div>
+
+  <div class="p-media">
+    <div id="ytHost" hidden><div id="ytPlayer"></div></div>
+    <div id="audioHost"></div>
+  </div>
+
+  <button class="p-close" id="pClose" type="button" aria-label="닫기"></button>
+</div>
+
+<script>
+/* =========================================================================
+   ▼▼▼ 여기만 고치면 됩니다 ▼▼▼
+   ========================================================================= */
+
+const PLAYLIST = {
+
+  /* --- 커버 --- */
+  cover: "",        // 이미지 경로. 예: "cover.jpg" (같은 폴더에 파일을 올리세요)
+  zoom: 100,        // 확대 %  (100이 기본, 150이면 1.5배)
+  x: 50,            // 가로 위치 % (0 = 왼쪽, 50 = 가운데, 100 = 오른쪽)
+  y: 50,            // 세로 위치 % (0 = 위,   50 = 가운데, 100 = 아래)
+  shadow: 24,       // 커버 그림자 진하기 (0~60, 0이면 그림자 없음)
+  /* 커버 칸 크기는 맨 위 CSS의 --cover 값을 바꾸세요 */
+
+  /* --- 제목 --- */
+  eyebrow: "PLAYLIST",              // 맨 위 작은 영문 머리말
+  title:   "새벽 세 시의 편지",       // 플레이리스트 이름
+  sub:     "○○ × ○○",              // 그 아래 작은 글씨 (페어명 등)
+
+  notesHead: "NOTES",               // 코멘트 위에 붙는 머리말
+
+  scrollAfter: 5,                   // 트랙이 이 수를 넘으면 목록만 스크롤됩니다 (0이면 전부 펼침)
+  volume: 80,                       // 처음 음량 (0~100)
+
+  /* --- 배경 --- */
+  coverGlow: true,                  // 커버 구역 뒤에 커버 이미지를 연하게 깔지 여부
+  coverGlowOpacity: 16,             // 그 농도 % (0~100)
+  coverGlowBlur: 28,                // 그 흐림 정도 px
+  coverGlowSpread: 220,             // 그 범위 % (100 = 커버와 같은 크기, 220 = 2.2배)
+
+  bgImage: "",                      // 전체 배경 이미지 경로 (예: "bg.jpg"). 비우면 안 씁니다
+  bgOpacity: 12,                    // 전체 배경 농도 % (0~100)
+  bgBlur: 0,                        // 전체 배경 흐림 정도 px
+
+  /* --- 트랙 목록 --- */
+  /* youtube : 주소를 넣으면 썸네일이 앨범아트로 자동 연결됩니다
+     mp3     : 파일 경로 (예: "music/song.mp3")
+     art     : 비워두면 유튜브 썸네일을 씁니다. 적으면 그 이미지가 우선입니다
+     comment : 그 곡을 누르면 아래에 나타납니다. 길게 써도 되고, 빈 줄도 그대로 살아납니다
+               꾸미기 표기를 쓸 수 있습니다:
+                 **굵게**   *기울임*   __밑줄__   ~~취소선~~
+                 ==하이라이트==   !!강조색!!
+                 한 줄에 --- 만 쓰면 가로줄이 그어집니다 */
+  tracks: [
+    {
+      title: "Never Gonna Give You Up",
+      artist: "Rick Astley",
+      youtube: "https://youtu.be/dQw4w9WgXcQ",
+      mp3: "",
+      art: "",
+      comment: "여기에 이 곡에 대한 이야기를 길게 적으세요.\n\n빈 줄을 하나 넣으면 문단이 그대로 나뉩니다."
+    },
+    {
+      title: "Bohemian Rhapsody",
+      artist: "Queen",
+      youtube: "https://www.youtube.com/watch?v=fJ9rUzIMcZQ",
+      mp3: "",
+      art: "",
+      comment: ""
+    },
+    {
+      title: "직접 올린 노래",
+      artist: "가수 이름",
+      youtube: "",
+      mp3: "music/song.mp3",   // 저장소에 music 폴더를 만들고 mp3를 넣으세요
+      art: "",                 // 예: "art/song.jpg"
+      comment: "코멘트를 비워두면 이 곡을 눌렀을 때 아래에 아무것도 나오지 않습니다."
+    }
+  ]
+};
+
+/* =========================================================================
+   ▲▲▲ 여기까지 ▲▲▲   아래는 건드리지 않아도 됩니다
+   ========================================================================= */
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
+const ICON = {
+  play:  '<svg viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24"><path d="M6.5 5h3.6v14H6.5zM13.9 5h3.6v14h-3.6z"/></svg>',
+  prev:  '<svg viewBox="0 0 24 24"><path d="M7 6h2.2v12H7zM19 6v12l-9-6z"/></svg>',
+  next:  '<svg viewBox="0 0 24 24"><path d="M14.8 6H17v12h-2.2zM5 6l9 6-9 6z"/></svg>',
+  vol:   '<svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4zm11.5-.6v6.2a3.4 3.4 0 000-6.2z"/></svg>',
+  mute:  '<svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5H4zm11 1.1 1.4-1.4 1.6 1.6 1.6-1.6 1.4 1.4-1.6 1.6 1.6 1.6-1.4 1.4-1.6-1.6-1.6 1.6-1.4-1.4 1.6-1.6z"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"/></svg>'
+};
+
+/* 썸네일이 안 열리면 다른 주소로 차례차례 다시 시도하고, 끝내 안 되면 조용히 감춥니다 */
+window.thumbErr = function(img){
+  const rest = (img.getAttribute("data-fb") || "").split("|").filter(Boolean);
+  if (rest.length){
+    img.setAttribute("data-fb", rest.slice(1).join("|"));
+    img.src = rest[0];
+  } else {
+    img.removeAttribute("src");
+    img.style.display = "none";
+  }
+};
+function thumbSet(v){
+  if (!v) return [];
+  return [
+    "https://i.ytimg.com/vi/" + v + "/hqdefault.jpg",
+    "https://img.youtube.com/vi/" + v + "/hqdefault.jpg",
+    "https://i.ytimg.com/vi/" + v + "/mqdefault.jpg",
+    "https://i.ytimg.com/vi/" + v + "/default.jpg"
+  ];
+}
+
+function ytId(url){
+  const s = String(url || "").trim();
+  if (!s) return "";
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : "";
+}
+/* 코멘트 꾸미기 표기를 HTML로 바꿉니다 */
+function fmt(text){
+  let h = esc(text);
+  h = h.replace(/^\s*---\s*$/gm, "<hr>");
+  h = h.replace(/==([^\n]+?)==/g, '<mark>$1</mark>');
+  h = h.replace(/!!([^\n]+?)!!/g, '<span class="accent">$1</span>');
+  h = h.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__([^\n]+?)__/g, '<u>$1</u>');
+  h = h.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
+  h = h.replace(/\*([^\n*]+?)\*/g, '<em>$1</em>');
+  return h;
+}
+
+function mmss(sec){
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ":" + String(s).padStart(2, "0");
+}
+
+/* --- 커버 --- */
+(function(){
+  const box = $("#cover");
+  if (PLAYLIST.cover){
+    box.innerHTML = '<img src="' + esc(PLAYLIST.cover) + '" alt="' + esc(PLAYLIST.title) + ' 커버">';
+    const img = box.querySelector("img");
+    img.style.objectPosition = PLAYLIST.x + "% " + PLAYLIST.y + "%";
+    img.style.transform = "scale(" + (PLAYLIST.zoom / 100) + ")";
+    img.style.transformOrigin = PLAYLIST.x + "% " + PLAYLIST.y + "%";
+  } else {
+    box.innerHTML = '<div class="empty">커버 이미지를<br>넣어 주세요</div>';
+  }
+  const sh = Math.max(0, Math.min(100, Number(PLAYLIST.shadow)));
+  box.style.boxShadow = sh > 0
+    ? "0 14px 40px rgba(0,0,0," + (sh/100).toFixed(3) + "),0 4px 12px rgba(0,0,0," + (sh/200).toFixed(3) + ")"
+    : "none";
+})();
+
+/* --- 배경 --- */
+(function(){
+  const side = $("#sideBg"), img = $("#sideBgImg");
+  if (PLAYLIST.coverGlow && PLAYLIST.cover){
+    img.src = PLAYLIST.cover;
+    // 커버와 똑같은 구도가 되도록 확대·위치를 그대로 따라갑니다
+    img.style.objectPosition = PLAYLIST.x + "% " + PLAYLIST.y + "%";
+    img.style.transform = "scale(" + (PLAYLIST.zoom / 100) + ")";
+    img.style.transformOrigin = PLAYLIST.x + "% " + PLAYLIST.y + "%";
+    img.style.filter = "blur(" + (Number(PLAYLIST.coverGlowBlur) || 0) + "px)";
+    side.style.opacity = (Number(PLAYLIST.coverGlowOpacity) || 0) / 100;
+    side.style.setProperty("--glow-spread", (Number(PLAYLIST.coverGlowSpread) || 220) / 100);
+    document.documentElement.style.setProperty("--glow-spread", (Number(PLAYLIST.coverGlowSpread) || 220) / 100);
+  } else {
+    side.style.display = "none";
+  }
+
+  const page = $("#pageBg");
+  if (PLAYLIST.bgImage){
+    page.style.backgroundImage = 'url("' + PLAYLIST.bgImage + '")';
+    page.style.opacity = (Number(PLAYLIST.bgOpacity) || 0) / 100;
+    page.style.filter = "blur(" + (Number(PLAYLIST.bgBlur) || 0) + "px)";
+  } else {
+    page.style.display = "none";
+  }
+})();
+
+/* --- 제목 --- */
+$("#eyebrow").textContent = PLAYLIST.eyebrow || "";
+$("#plTitle").textContent = PLAYLIST.title || "이름 없는 플레이리스트";
+$("#plSub").textContent   = PLAYLIST.sub || "";
+if (!PLAYLIST.eyebrow) $("#eyebrow").hidden = true;
+if (!PLAYLIST.sub) $("#plSub").hidden = true;
+
+/* --- 트랙 --- */
+const T = (PLAYLIST.tracks || []).map(t => {
+  const v = ytId(t.youtube);
+  const set = thumbSet(v);
+  return {
+    title:  t.title || "제목 없음",
+    artist: t.artist || "",
+    videoId: v,
+    mp3: t.mp3 || "",
+    thumb: t.art || set[0] || "",
+    fallback: t.art ? [] : set.slice(1),
+    isYt: !t.art && !!v,
+    comment: (t.comment || "").trim()
+  };
+});
+
+$("#plCount").innerHTML = "<b>" + T.length + "</b> TRACKS";
+
+$("#tracks").innerHTML = T.length ? T.map((t,i) =>
+  '<button class="row" type="button" data-i="' + i + '">' +
+    '<span class="num"><b>' + String(i+1).padStart(2,"0") + '</b>' +
+      '<span class="eq"><i></i><i></i><i></i></span></span>' +
+    '<span class="meta">' +
+      '<span class="title">' + esc(t.title) + '</span>' +
+      '<span class="artist">' + esc(t.artist) + '</span>' +
+    '</span>' +
+    '<span class="art">' + (t.thumb
+      ? '<img class="' + (t.isYt ? "yt" : "") + '" src="' + esc(t.thumb) + '" alt=""' +
+        ' referrerpolicy="no-referrer" onerror="thumbErr(this)"' +
+        ' data-fb="' + esc(t.fallback.join("|")) + '">'
+      : "") + '</span>' +
+  '</button>'
+).join("") : '<p class="tracks-empty">아직 트랙이 없습니다.</p>';
+
+/* --- 트랙이 정해진 수를 넘으면 목록만 스크롤 --- */
+function fitTracks(){
+  const n = Number(PLAYLIST.scrollAfter || 0);
+  const box = $("#tracks");
+  const rows = box.querySelectorAll(".row");
+  if (!(n > 0) || rows.length <= n){
+    box.classList.remove("scrolls");
+    box.style.maxHeight = "";
+    return;
+  }
+  box.classList.add("scrolls");
+  box.style.maxHeight = (rows[n].offsetTop - rows[0].offsetTop) + "px";
+}
+fitTracks();
+window.addEventListener("load", fitTracks);
+window.addEventListener("resize", fitTracks);
+
+/* --- 선택한 곡의 코멘트 --- */
+const notesBox = $("#notes");
+function showNote(i){
+  const t = T[i];
+  if (!t || !t.comment){ notesBox.hidden = true; notesBox.innerHTML = ""; return; }
+  notesBox.hidden = false;
+  notesBox.innerHTML =
+    '<p class="notes-head">' + esc(PLAYLIST.notesHead || "NOTES") + '</p>' +
+    '<article class="note">' +
+      '<span class="note-no">' + String(i+1).padStart(2,"0") + '</span>' +
+      '<h2 class="note-title">' + esc(t.title) + '</h2>' +
+      (t.artist ? '<p class="note-artist">' + esc(t.artist) + '</p>' : '') +
+      '<div class="note-body">' + fmt(t.comment) + '</div>' +
+    '</article>';
+  requestAnimationFrame(() => notesBox.querySelector(".note").classList.add("in"));
+}
+
+/* =========================== 재생 =========================== */
+let cur = -1;
+let ytPlayer = null, queued = null, audioEl = null;
+let playing = false, muted = false;
+let volume = Math.max(0, Math.min(100, Number(PLAYLIST.volume) || 80));
+let ticker = null;
+
+const player = $("#player"), ytHost = $("#ytHost"), audioHost = $("#audioHost");
+
+$("#pPrev").innerHTML  = ICON.prev;
+$("#pNext").innerHTML  = ICON.next;
+$("#pPlay").innerHTML  = ICON.play;
+$("#pClose").innerHTML = ICON.close;
+$("#pMute").innerHTML  = ICON.vol;
+$("#pVol").value = volume;
+
+/* 유튜브 재생기 */
+(function(){
+  const s = document.createElement("script");
+  s.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(s);
+})();
+
+window.onYouTubeIframeAPIReady = function(){
+  ytPlayer = new YT.Player("ytPlayer", {
+    height:"63", width:"112",
+    playerVars:{ rel:0, modestbranding:1, playsinline:1 },
+    events:{
+      onReady: () => {
+        applyVolume();
+        if (queued){ const v = queued; queued = null; startYt(v); }
+      },
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.ENDED) play(cur + 1);
+        else if (e.data === YT.PlayerState.PLAYING) setPlaying(true);
+        else if (e.data === YT.PlayerState.PAUSED)  setPlaying(false);
+      }
+    }
+  });
+};
+
+function startYt(videoId){
+  if (ytPlayer && ytPlayer.loadVideoById){
+    ytPlayer.loadVideoById(videoId);
+    applyVolume();
+    ytPlayer.playVideo();
+  } else {
+    queued = videoId;   // API가 아직 준비 전 — 뜨는 대로 자동 재생
+  }
+}
+
+function applyVolume(){
+  if (ytPlayer && ytPlayer.setVolume){
+    ytPlayer.setVolume(volume);
+    if (muted || volume === 0) ytPlayer.mute(); else ytPlayer.unMute();
+  }
+  if (audioEl){
+    audioEl.volume = volume / 100;
+    audioEl.muted = muted;
+  }
+  $("#pMute").innerHTML = (muted || volume === 0) ? ICON.mute : ICON.vol;
+}
+
+function setPlaying(on){
+  playing = on;
+  $("#pPlay").innerHTML = on ? ICON.pause : ICON.play;
+  $("#pPlay").setAttribute("aria-label", on ? "일시정지" : "재생");
+  const row = document.querySelectorAll(".row")[cur];
+  if (row) row.classList.toggle("paused", !on);
+  if (on) startTicker(); else stopTicker();
+}
+
+function progress(){
+  let now = 0, dur = 0;
+  if (audioEl){ now = audioEl.currentTime || 0; dur = audioEl.duration || 0; }
+  else if (ytPlayer && ytPlayer.getDuration){
+    now = ytPlayer.getCurrentTime() || 0;
+    dur = ytPlayer.getDuration() || 0;
+  }
+  $("#pFill").style.width = (dur > 0 ? (now/dur*100) : 0) + "%";
+  $("#pTime").textContent = mmss(now) + " / " + mmss(dur);
+}
+function startTicker(){ stopTicker(); ticker = setInterval(progress, 500); progress(); }
+function stopTicker(){ if (ticker){ clearInterval(ticker); ticker = null; } }
+
+function paint(){
+  document.querySelectorAll(".row").forEach((r,i) => {
+    r.classList.toggle("on", i === cur);
+    if (i !== cur) r.classList.remove("paused");
+  });
+}
+
+function play(i, fromClick){
+  if (i < 0 || i >= T.length) return;
+  cur = i;
+  const t = T[i];
+
+  $("#pTitle").textContent  = t.title;
+  $("#pArtist").textContent = t.artist;
+  const img = $("#pImg");
+  if (t.thumb){
+    img.style.display = "";
+    img.setAttribute("data-fb", t.fallback.join("|"));
+    img.src = t.thumb;
+    img.className = t.isYt ? "yt" : "";
+    img.hidden = false;
+  } else img.hidden = true;
+
+  $("#pFill").style.width = "0%";
+  $("#pTime").textContent = "0:00 / 0:00";
+
+  if (t.videoId){
+    if (audioEl){ audioEl.pause(); audioEl = null; }
+    audioHost.innerHTML = "";
+    ytHost.hidden = false;
+    startYt(t.videoId);
+  } else if (t.mp3){
+    if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+    ytHost.hidden = true;
+    audioHost.innerHTML = "";
+    audioEl = document.createElement("audio");
+    audioEl.src = t.mp3;
+    audioEl.preload = "metadata";
+    audioEl.addEventListener("ended", () => play(cur + 1));
+    audioEl.addEventListener("play",  () => setPlaying(true));
+    audioEl.addEventListener("pause", () => setPlaying(false));
+    audioEl.addEventListener("loadedmetadata", progress);
+    audioHost.appendChild(audioEl);
+    applyVolume();
+    audioEl.play().catch(() => setPlaying(false));
+  }
+
+  player.classList.add("on");
+  paint();
+  setPlaying(true);
+  showNote(i);
+
+  // 목록이 스크롤 상태면 재생 중인 줄이 보이도록
+  const box = $("#tracks");
+  if (box.classList.contains("scrolls")){
+    const rows = box.querySelectorAll(".row");
+    const top = rows[i].offsetTop - rows[0].offsetTop;
+    if (top < box.scrollTop || top + rows[i].offsetHeight > box.scrollTop + box.clientHeight){
+      box.scrollTop = top;
+    }
+  }
+
+  if (fromClick && t.comment){
+    const soft = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(() => {
+      const target = notesBox.querySelector(".notes-head") || notesBox;
+      target.scrollIntoView({ behavior: soft ? "smooth" : "auto", block: "start" });
+    }, 60);
+  }
+}
+
+function toggle(){
+  if (cur < 0) return;
+  if (audioEl){ audioEl.paused ? audioEl.play() : audioEl.pause(); return; }
+  if (ytPlayer && ytPlayer.getPlayerState){
+    if (playing) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+  }
+}
+
+function stopAll(){
+  if (audioEl){ audioEl.pause(); audioEl = null; }
+  audioHost.innerHTML = "";
+  if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+  ytHost.hidden = true;
+  stopTicker();
+  playing = false;
+  $("#pPlay").innerHTML = ICON.play;
+  player.classList.remove("on");
+  cur = -1; paint();
+  notesBox.hidden = true; notesBox.innerHTML = "";
+}
+
+/* 조작 */
+document.addEventListener("click", e => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  const i = Number(row.dataset.i);
+  if (i === cur) stopAll();       // 같은 곡을 다시 누르면 끄기
+  else play(i, true);
+});
+$("#pPrev").onclick  = () => play(cur - 1);
+$("#pNext").onclick  = () => play(cur + 1);
+$("#pPlay").onclick  = toggle;
+$("#pClose").onclick = stopAll;
+
+$("#pVol").addEventListener("input", e => {
+  volume = Number(e.target.value);
+  if (volume > 0) muted = false;
+  applyVolume();
+});
+$("#pMute").addEventListener("click", () => {
+  muted = !muted;
+  if (!muted && volume === 0){ volume = 60; $("#pVol").value = 60; }
+  applyVolume();
+});
+
+$("#pBar").addEventListener("click", e => {
+  if (cur < 0) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const p = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  if (audioEl && audioEl.duration) audioEl.currentTime = audioEl.duration * p;
+  else if (ytPlayer && ytPlayer.getDuration){
+    const d = ytPlayer.getDuration();
+    if (d) ytPlayer.seekTo(d * p, true);
+  }
+  progress();
+});
+
+/* 스페이스바로 재생·일시정지 */
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && cur >= 0 && !/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName)){
+    e.preventDefault(); toggle();
+  }
+});
+</script>
+
+</body>
+</html>
