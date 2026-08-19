@@ -415,6 +415,10 @@ iframe#preview{
     <!-- 내보내기 -->
     <div class="sec export">
       <h2>내보내기</h2>
+      <div class="switch-row" style="margin-bottom:14px">
+        <span>어디에나 붙이기<br><small style="color:var(--ui-dim);font-size:11px">티스토리·갠홈 등 — 스크립트·CSS 없이 동작</small></span>
+        <button class="switch" id="noJs" aria-pressed="false" aria-label="켜기/끄기"></button>
+      </div>
       <button class="btn btn-primary block" id="btnCopyTop">HTML 코드 복사</button>
       <button class="btn block" id="btnCode">HTML 코드 보기</button>
       <button class="btn block" id="btnDownload">index.html 내려받기</button>
@@ -1232,6 +1236,7 @@ const state = {
   notesHead:"NOTES",
   titleBold:false,
   trackBold:false,
+  noJs:false,
   scrollAfter:5,
   colors:{ bg:"#ffffff", text:"#111111", accent:"#8a8a8a" },
   cover:{ src:"", zoom:100, x:50, y:50, size:220, shadow:24 },
@@ -1305,6 +1310,18 @@ function readImage(file, cb){
 
 /* ---------- 페이지 만들기 ---------- */
 const TPL = document.getElementById("pageTpl").textContent;
+
+function fmtText(text){
+  let h = esc(text);
+  h = h.replace(/^\s*---\s*$/gm, "<hr>");
+  h = h.replace(/==([^\n]+?)==/g, '<mark>$1</mark>');
+  h = h.replace(/!!([^\n]+?)!!/g, '<span class="accent">$1</span>');
+  h = h.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__([^\n]+?)__/g, '<u>$1</u>');
+  h = h.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
+  h = h.replace(/\*([^\n*]+?)\*/g, '<em>$1</em>');
+  return h;
+}
 
 function thumbSet(v){
   if (!v) return [];
@@ -1434,10 +1451,155 @@ function buildPage(){
   return out;
 }
 
+/* 어디에 붙여도 그대로 나오는 형태 — 스타일을 태그마다 직접 박습니다 */
+function buildInline(){
+  const c = state.colors;
+  const dark = isDark(c.bg);
+  const LINE  = mix(c.bg, c.text, dark ? 0.26 : 0.11);
+  const MUTED = mix(c.bg, c.text, dark ? 0.60 : 0.42);
+  const FAINT = mix(c.bg, c.text, dark ? 0.10 : 0.045);
+  const [ar,ag,ab] = hexToRgb(c.accent);
+  const HL = "rgba(" + ar + "," + ag + "," + ab + ",.3)";
+  const FONT = '&quot;Pretendard Variable&quot;, Pretendard, -apple-system, BlinkMacSystemFont, system-ui, &quot;Apple SD Gothic Neo&quot;, &quot;Noto Sans KR&quot;, sans-serif';
+  const TW = state.titleBold ? 600 : 400;
+  const KW = state.trackBold ? 600 : 300;
+  const cv = state.cover;
+  const uid = "plw" + Math.random().toString(36).slice(2,7);
+
+  /* 코멘트 서식 — 클래스 대신 직접 스타일 */
+  function fmtInline(text){
+    let h = esc(text);
+    h = h.replace(/^\s*---\s*$/gm, '<hr style="border:0;border-top:1px solid ' + LINE + ';margin:26px 0">');
+    h = h.replace(/==([^\n]+?)==/g, '<span style="background:' + HL + ';padding:0 .18em;border-radius:2px">$1</span>');
+    h = h.replace(/!!([^\n]+?)!!/g, '<span style="color:' + c.accent + '">$1</span>');
+    h = h.replace(/\*\*([^\n]+?)\*\*/g, '<span style="font-weight:600">$1</span>');
+    h = h.replace(/__([^\n]+?)__/g, '<span style="text-decoration:underline;text-underline-offset:4px">$1</span>');
+    h = h.replace(/~~([^\n]+?)~~/g, '<span style="text-decoration:line-through;opacity:.6">$1</span>');
+    h = h.replace(/\*([^\n*]+?)\*/g, '<span style="font-style:italic">$1</span>');
+    return h;
+  }
+
+  /* 커버 */
+  const coverInner = cv.src
+    ? '<img src="' + cv.src + '" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;'
+      + 'object-fit:cover;object-position:' + cv.x + '% ' + cv.y + '%;'
+      + 'transform:scale(' + (cv.zoom/100) + ');transform-origin:' + cv.x + '% ' + cv.y + '%;display:block">'
+    : '<span style="position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);text-align:center;'
+      + 'font-size:10px;letter-spacing:.14em;color:' + MUTED + '">NO COVER</span>';
+
+  const shadow = cv.shadow > 0
+    ? "0 14px 40px rgba(0,0,0," + (cv.shadow/100).toFixed(3) + "),0 4px 12px rgba(0,0,0," + (cv.shadow/200).toFixed(3) + ")"
+    : "none";
+
+  const glow = (state.glow.on && cv.src)
+    ? '<span style="position:absolute;left:50%;top:calc(var(--cv) / 2);transform:translate(-50%,-50%);'
+      + 'width:calc(var(--cv) * ' + (state.glow.spread/100) + ');height:calc(var(--cv) * ' + (state.glow.spread/100) + ');'
+      + 'display:block;overflow:hidden;z-index:0;pointer-events:none;opacity:' + (state.glow.opacity/100) + ';'
+      + '-webkit-mask-image:radial-gradient(closest-side,#000 26%,rgba(0,0,0,.5) 58%,transparent 100%);'
+      + 'mask-image:radial-gradient(closest-side,#000 26%,rgba(0,0,0,.5) 58%,transparent 100%)">'
+      + '<img src="' + cv.src + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:'
+      + cv.x + '% ' + cv.y + '%;transform:scale(' + (cv.zoom/100) + ');transform-origin:' + cv.x + '% ' + cv.y + '%;'
+      + 'filter:blur(' + state.glow.blur + 'px);display:block"></span>'
+    : '';
+
+  const pageBg = (state.bgimg.on && state.bgimg.src)
+    ? '<span style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;display:block;'
+      + 'background-image:url(&quot;' + state.bgimg.src + '&quot;);background-size:cover;background-position:center;'
+      + 'opacity:' + (state.bgimg.opacity/100) + ';filter:blur(' + state.bgimg.blur + 'px)"></span>'
+    : '';
+
+  /* 트랙 */
+  const rows = state.tracks.map((t,i) => {
+    const set = thumbSet(t.videoId);
+    const thumb = t.art || set[0] || "";
+    const isYt = !t.art && !!t.videoId;
+
+    const media = t.videoId
+      ? '<span style="position:relative;display:block;width:100%;max-width:420px;padding-top:min(56.25%,236px);'
+        + 'margin:0 0 20px;background:' + FAINT + '">'
+        + '<iframe loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen'
+        + ' title="' + esc(t.title) + '" src="https://www.youtube.com/embed/' + t.videoId
+        + '?autoplay=1&amp;rel=0&amp;modestbranding=1"'
+        + ' style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block"></iframe></span>'
+      : (t.mp3
+        ? '<audio controls preload="none" src="' + esc(t.mp3) + '" style="width:100%;max-width:420px;display:block;margin:0 0 20px"></audio>'
+        : '');
+
+    const note = (t.comment || "").trim()
+      ? '<div style="font-size:14px;line-height:2.1;font-weight:300;white-space:pre-wrap;word-break:keep-all;max-width:600px;color:' + c.text + '">'
+        + fmtInline(t.comment.trim()) + '</div>'
+      : '';
+
+    return '<details class="' + uid + '-r" style="border-bottom:1px solid ' + LINE + '">'
+      + '<summary style="display:flex;align-items:center;gap:14px;padding:14px 4px;cursor:pointer;list-style:none">'
+        + '<span style="flex:0 0 auto;width:26px;font-size:10px;letter-spacing:.06em;color:' + MUTED + '">'
+          + String(i+1).padStart(2,"0") + '</span>'
+        + '<span style="flex:1 1 auto;min-width:0">'
+          + '<span class="' + uid + '-t" style="display:block;font-size:13px;line-height:1.5;font-weight:' + KW
+            + ';color:' + c.text + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(t.title) + '</span>'
+          + '<span style="display:block;font-size:10.5px;margin-top:4px;color:' + MUTED
+            + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(t.artist) + '</span>'
+        + '</span>'
+        + '<span style="flex:0 0 auto;width:46px;height:46px;margin-right:10px;overflow:hidden;display:block;background:' + FAINT + '">'
+          + (thumb ? '<img src="' + esc(thumb) + '" alt="" referrerpolicy="no-referrer" style="width:100%;height:100%;'
+              + 'object-fit:cover;display:block' + (isYt ? ';transform:scale(1.35)' : '') + '">' : '')
+        + '</span>'
+      + '</summary>'
+      + '<div style="padding:2px 4px 30px">' + media + note + '</div>'
+    + '</details>';
+  }).join("");
+
+  /* 있으면 좋고 없어도 그만인 것들 — 지워져도 본체는 멀쩡합니다 */
+  const extra = '<style>'
+    + '@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css");'
+    + '.' + uid + '-r summary::-webkit-details-marker{display:none}'
+    + '.' + uid + '-r summary::marker{content:""}'
+    + '.' + uid + '-r summary:hover .' + uid + '-t{color:' + c.accent + '}'
+    + '.' + uid + '-r[open] .' + uid + '-t{color:' + c.accent + '}'
+    + '</style>';
+
+  return extra
+  + '<div style="position:relative;overflow:hidden;background:' + c.bg + ';color:' + c.text + ';'
+    + 'font-family:' + FONT + ';font-weight:300;line-height:1.6;padding:clamp(36px,6vw,64px) clamp(16px,4vw,32px)">'
+    + pageBg
+    + '<div style="position:relative;z-index:1;max-width:840px;margin:0 auto;display:flex;flex-wrap:wrap;'
+      + 'gap:clamp(28px,6vw,72px);align-items:flex-start">'
+
+      + '<div style="--cv:clamp(150px,42vw,220px);flex:0 0 auto;width:var(--cv);margin-left:auto;margin-right:auto;'
+        + 'position:relative;text-align:center">'
+        + glow
+        + '<span style="position:relative;z-index:1;display:block;width:var(--cv);height:var(--cv);overflow:hidden;'
+          + 'background:' + FAINT + ';box-shadow:' + shadow + '">' + coverInner + '</span>'
+        + (state.eyebrow
+            ? '<div style="position:relative;z-index:1;margin-top:30px;font-size:9px;letter-spacing:.3em;'
+              + 'text-transform:uppercase;color:' + c.accent + '">' + esc(state.eyebrow) + '</div>' : '')
+        + '<div style="position:relative;z-index:1;margin-top:14px;font-size:clamp(17px,2.4vw,21px);line-height:1.5;'
+          + 'font-weight:' + TW + ';word-break:keep-all">' + esc(state.title || "이름 없는 플레이리스트") + '</div>'
+        + (state.sub
+            ? '<div style="position:relative;z-index:1;margin-top:12px;font-size:12px;color:' + MUTED
+              + ';word-break:keep-all">' + esc(state.sub) + '</div>' : '')
+        + '<div style="position:relative;z-index:1;margin-top:26px;padding-top:18px;border-top:1px solid ' + LINE + ';'
+          + 'display:inline-block;min-width:110px;font-size:9px;letter-spacing:.2em;color:' + MUTED + '">'
+          + '<span style="color:' + c.accent + '">' + state.tracks.length + '</span> TRACKS</div>'
+      + '</div>'
+
+      + '<div style="flex:1 1 300px;min-width:min(100%,260px);border-top:1px solid ' + LINE + '">'
+        + (state.tracks.length ? rows
+            : '<div style="padding:50px 0;text-align:center;font-size:13px;color:' + MUTED
+              + ';border-bottom:1px solid ' + LINE + '">아직 트랙이 없습니다.</div>')
+      + '</div>'
+
+    + '</div>'
+  + '</div>';
+}
+
+
+function output(){ return state.noJs ? buildInline() : buildPage(); }
+
 let timer;
 function render(){
   clearTimeout(timer);
-  timer = setTimeout(() => { $("#preview").srcdoc = buildPage(); }, 240);
+  timer = setTimeout(() => { $("#preview").srcdoc = output(); }, 240);
 }
 
 /* ---------- 커버 ---------- */
@@ -1542,6 +1704,11 @@ function syncBold(){
   $("#titleBold").setAttribute("aria-pressed", String(state.titleBold));
   $("#trackBold").setAttribute("aria-pressed", String(state.trackBold));
 }
+$("#noJs").addEventListener("click", () => {
+  state.noJs = !state.noJs;
+  $("#noJs").setAttribute("aria-pressed", String(state.noJs));
+  render();
+});
 $("#titleBold").addEventListener("click", () => { state.titleBold = !state.titleBold; syncBold(); render(); });
 $("#trackBold").addEventListener("click", () => { state.trackBold = !state.trackBold; syncBold(); render(); });
 
@@ -1744,7 +1911,7 @@ async function copyHTML(text){
   catch(err){ toast("복사에 실패했어요 — 코드 보기에서 직접 선택해 주세요"); }
   ta.remove();
 }
-$("#btnCopyTop").addEventListener("click", () => copyHTML(buildPage()));
+$("#btnCopyTop").addEventListener("click", () => copyHTML(output()));
 
 $("#btnReset").addEventListener("click", () => {
   if (!confirm("모두 지우고 처음 상태로 돌아갑니다. 계속할까요?")) return;
@@ -1754,6 +1921,8 @@ $("#btnReset").addEventListener("click", () => {
   state.notesHead = "NOTES";
   state.titleBold = false;
   state.trackBold = false;
+  state.noJs = false;
+  $("#noJs").setAttribute("aria-pressed", "false");
   state.scrollAfter = 5;
   state.colors = { bg:"#ffffff", text:"#111111", accent:"#8a8a8a" };
   state.cover = { src:"", zoom:100, x:50, y:50, size:220, shadow:24 };
@@ -1769,12 +1938,12 @@ $("#btnReset").addEventListener("click", () => {
   $("#fYt").value = ""; $("#fAudio").value = "";
   $("#fTrackTitle").value = ""; $("#fArtist").value = ""; $("#fComment").value = "";
   syncCover(); syncColors(); syncBg(); syncBold(); drawTracks();
-  $("#preview").srcdoc = buildPage();
+  $("#preview").srcdoc = output();
   toast("처음 상태로 돌아갔습니다");
 });
 
 $("#btnDownload").addEventListener("click", () => {
-  const blob = new Blob([buildPage()], { type:"text/html;charset=utf-8" });
+  const blob = new Blob([output()], { type:"text/html;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = "index.html";
   document.body.appendChild(a); a.click(); a.remove();
@@ -1783,7 +1952,7 @@ $("#btnDownload").addEventListener("click", () => {
 });
 
 $("#btnCode").addEventListener("click", () => {
-  $("#codeArea").value = buildPage();
+  $("#codeArea").value = output();
   $("#codeModal").setAttribute("open","");
 });
 $("#btnCloseModal").addEventListener("click", () => $("#codeModal").removeAttribute("open"));
@@ -1791,7 +1960,7 @@ $("#codeModal").addEventListener("click", e => { if (e.target.id === "codeModal"
 $("#btnCopy").addEventListener("click", () => copyHTML($("#codeArea").value));
 
 syncCover(); syncColors(); syncBg(); syncBold(); drawTracks();
-$("#preview").srcdoc = buildPage();
+$("#preview").srcdoc = output();
 </script>
 </body>
 </html>
