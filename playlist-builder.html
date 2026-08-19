@@ -488,8 +488,9 @@ iframe#preview{
   --hover: __HOVER__;  /* 목록에 마우스 올렸을 때 (포인트색 반투명) */
 
   /* 글씨 굵기 (아래 설정에서 켜고 끕니다) */
-  --title-weight: 400;   /* 플레이리스트 이름 */
-  --track-weight: 300;   /* 목록의 곡 제목 */
+  --cover-shadow: __SHADOW__;
+  --title-weight: __TITLEW__;   /* 플레이리스트 이름 */
+  --track-weight: __TRACKW__;   /* 목록의 곡 제목 */
 
   /* 커버 크기 — 화면이 좁아지면 알아서 줄어듭니다 */
   --cover: clamp(112px, 24vw, __COVER__px);
@@ -541,7 +542,7 @@ body{
 
 .cover{
   position:relative;width:var(--cover);margin:0 auto;aspect-ratio:1;overflow:hidden;
-  background:var(--faint);box-shadow:0 14px 40px rgba(0,0,0,.24),0 4px 12px rgba(0,0,0,.12);
+  background:var(--faint);box-shadow:var(--cover-shadow);
 }
 .cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .cover .empty{
@@ -743,22 +744,22 @@ h1{
 
 <body>
 
-<div id="pageBg"></div>
+__EL_PAGEBG__
 
 <div class="page">
   <main class="wrap">
     <aside class="side">
      <div class="side-inner">
-      <div class="side-bg" id="sideBg"><img id="sideBgImg" alt=""></div>
-      <div class="cover" id="cover"></div>
-      <p class="eyebrow" id="eyebrow"></p>
-      <h1 id="plTitle"></h1>
-      <p class="sub" id="plSub"></p>
-      <p class="count" id="plCount"></p>
+      __EL_SIDEBG__
+      __EL_COVER__
+      __EL_EYEBROW__
+      __EL_TITLE__
+      __EL_SUB__
+      __EL_COUNT__
      </div>
     </aside>
 
-    <section class="tracks" id="tracks"></section>
+    __EL_TRACKS__
   </main>
 
   <section class="notes" id="notes" hidden></section>
@@ -869,6 +870,7 @@ function mmss(sec){
 /* --- 커버 --- */
 (function(){
   const box = $("#cover");
+  if (box.innerHTML.trim()) return;      // 이미 들어 있으면 그대로 둡니다
   if (PLAYLIST.cover){
     box.innerHTML = '<img src="' + esc(PLAYLIST.cover) + '" alt="' + esc(PLAYLIST.title) + ' 커버">';
     const img = box.querySelector("img");
@@ -887,6 +889,7 @@ function mmss(sec){
 /* --- 배경 --- */
 (function(){
   const side = $("#sideBg"), img = $("#sideBgImg");
+  if (img && img.getAttribute("src")) return;   // 이미 들어 있으면 그대로
   if (PLAYLIST.coverGlow && PLAYLIST.cover){
     img.src = PLAYLIST.cover;
     // 커버와 똑같은 구도가 되도록 확대·위치를 그대로 따라갑니다
@@ -916,11 +919,13 @@ document.documentElement.style.setProperty("--title-weight", PLAYLIST.titleBold 
 document.documentElement.style.setProperty("--track-weight", PLAYLIST.trackBold ? 600 : 300);
 
 /* --- 제목 --- */
-$("#eyebrow").textContent = PLAYLIST.eyebrow || "";
-$("#plTitle").textContent = PLAYLIST.title || "이름 없는 플레이리스트";
-$("#plSub").textContent   = PLAYLIST.sub || "";
-if (!PLAYLIST.eyebrow) $("#eyebrow").hidden = true;
-if (!PLAYLIST.sub) $("#plSub").hidden = true;
+if (!$("#plTitle").textContent.trim()){
+  $("#eyebrow").textContent = PLAYLIST.eyebrow || "";
+  $("#plTitle").textContent = PLAYLIST.title || "이름 없는 플레이리스트";
+  $("#plSub").textContent   = PLAYLIST.sub || "";
+  if (!PLAYLIST.eyebrow) $("#eyebrow").hidden = true;
+  if (!PLAYLIST.sub) $("#plSub").hidden = true;
+}
 
 /* --- 트랙 --- */
 const T = (PLAYLIST.tracks || []).map(t => {
@@ -938,9 +943,10 @@ const T = (PLAYLIST.tracks || []).map(t => {
   };
 });
 
-$("#plCount").innerHTML = "<b>" + T.length + "</b> TRACKS";
+if (!$("#plCount").innerHTML.trim())
+  $("#plCount").innerHTML = "<b>" + T.length + "</b> TRACKS";
 
-$("#tracks").innerHTML = T.length ? T.map((t,i) =>
+if (!$("#tracks").innerHTML.trim()) $("#tracks").innerHTML = T.length ? T.map((t,i) =>
   '<button class="row" type="button" data-i="' + i + '">' +
     '<span class="num"><b>' + String(i+1).padStart(2,"0") + '</b>' +
       '<span class="eq"><i></i><i></i><i></i></span></span>' +
@@ -955,6 +961,7 @@ $("#tracks").innerHTML = T.length ? T.map((t,i) =>
       : "") + '</span>' +
   '</button>'
 ).join("") : '<p class="tracks-empty">아직 트랙이 없습니다.</p>';
+
 
 /* --- 트랙이 정해진 수를 넘으면 목록만 스크롤 --- */
 function fitTracks(){
@@ -1299,6 +1306,73 @@ function readImage(file, cb){
 /* ---------- 페이지 만들기 ---------- */
 const TPL = document.getElementById("pageTpl").textContent;
 
+function thumbSet(v){
+  if (!v) return [];
+  return [
+    "https://i.ytimg.com/vi/" + v + "/hqdefault.jpg",
+    "https://img.youtube.com/vi/" + v + "/hqdefault.jpg",
+    "https://i.ytimg.com/vi/" + v + "/mqdefault.jpg",
+    "https://i.ytimg.com/vi/" + v + "/default.jpg"
+  ];
+}
+
+/* 자바스크립트가 막힌 곳에서도 보이도록, 내용을 미리 HTML로 그려 둡니다 */
+function prerender(){
+  const cv = state.cover;
+  const coverInner = cv.src
+    ? '<img src="' + cv.src + '" alt="' + esc(state.title) + ' 커버" style="object-position:'
+      + cv.x + '% ' + cv.y + '%;transform:scale(' + (cv.zoom/100) + ');transform-origin:'
+      + cv.x + '% ' + cv.y + '%">'
+    : '<div class="empty">커버 이미지를<br>넣어 주세요</div>';
+
+  const glow = (state.glow.on && cv.src)
+    ? '<div class="side-bg" id="sideBg" style="opacity:' + (state.glow.opacity/100) + '">' +
+      '<img id="sideBgImg" alt="" src="' + cv.src + '" style="object-position:' + cv.x + '% ' + cv.y + '%;' +
+      'transform:scale(' + (cv.zoom/100) + ');transform-origin:' + cv.x + '% ' + cv.y + '%;' +
+      'filter:blur(' + state.glow.blur + 'px)">' + '</div>'
+    : '<div class="side-bg" id="sideBg" style="display:none"><img id="sideBgImg" alt=""></div>';
+
+  const pageBg = (state.bgimg.on && state.bgimg.src)
+    ? '<div id="pageBg" style="background-image:url(&quot;' + state.bgimg.src + '&quot;);opacity:'
+      + (state.bgimg.opacity/100) + ';filter:blur(' + state.bgimg.blur + 'px)"></div>'
+    : '<div id="pageBg" style="display:none"></div>';
+
+  const rows = state.tracks.map((t,i) => {
+    const set = thumbSet(t.videoId);
+    const thumb = t.art || set[0] || "";
+    const fb = t.art ? [] : set.slice(1);
+    const isYt = !t.art && !!t.videoId;
+    return '<button class="row" type="button" data-i="' + i + '">' +
+      '<span class="num"><b>' + String(i+1).padStart(2,"0") + '</b>' +
+        '<span class="eq"><i></i><i></i><i></i></span></span>' +
+      '<span class="meta">' +
+        '<span class="title">' + esc(t.title) + '</span>' +
+        '<span class="artist">' + esc(t.artist) + '</span>' +
+      '</span>' +
+      '<span class="art">' + (thumb
+        ? '<img class="' + (isYt ? "yt" : "") + '" src="' + esc(thumb) + '" alt=""' +
+          ' referrerpolicy="no-referrer" onerror="thumbErr(this)" data-fb="' + esc(fb.join("|")) + '">'
+        : "") + '</span>' +
+    '</button>';
+  }).join("");
+
+  return {
+    __EL_PAGEBG__: pageBg,
+    __EL_SIDEBG__: glow,
+    __EL_COVER__: '<div class="cover" id="cover">' + coverInner + '</div>',
+    __EL_EYEBROW__: state.eyebrow
+      ? '<p class="eyebrow" id="eyebrow">' + esc(state.eyebrow) + '</p>'
+      : '<p class="eyebrow" id="eyebrow" hidden></p>',
+    __EL_TITLE__: '<h1 id="plTitle">' + esc(state.title || "이름 없는 플레이리스트") + '</h1>',
+    __EL_SUB__: state.sub
+      ? '<p class="sub" id="plSub">' + esc(state.sub) + '</p>'
+      : '<p class="sub" id="plSub" hidden></p>',
+    __EL_COUNT__: '<p class="count" id="plCount"><b>' + state.tracks.length + '</b> TRACKS</p>',
+    __EL_TRACKS__: '<section class="tracks" id="tracks">' +
+      (state.tracks.length ? rows : '<p class="tracks-empty">아직 트랙이 없습니다.</p>') + '</section>'
+  };
+}
+
 function buildPage(){
   const c = state.colors;
   const [r,g,b] = hexToRgb(c.bg);
@@ -1346,8 +1420,14 @@ function buildPage(){
     })(),
     __COVER__: String(state.cover.size),
     __BGA__: "rgba(" + r + "," + g + "," + b + ",.93)",
+    __SHADOW__: state.cover.shadow > 0
+      ? "0 14px 40px rgba(0,0,0," + (state.cover.shadow/100).toFixed(3) + "),0 4px 12px rgba(0,0,0," + (state.cover.shadow/200).toFixed(3) + ")"
+      : "none",
+    __TITLEW__: state.titleBold ? "600" : "400",
+    __TRACKW__: state.trackBold ? "600" : "300",
     __ENDSCRIPT__: "<" + "/script>"
   };
+  Object.assign(map, prerender());
   let out = TPL;
   Object.keys(map).forEach(k => { out = out.split(k).join(map[k]); });
   out = out.split("__DATA__").join(json);
