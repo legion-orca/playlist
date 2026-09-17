@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>플레이리스트 만들기</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" as="style" crossorigin
@@ -477,6 +478,7 @@ iframe#preview{
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="__BG__">
 <title>__TITLE__</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -1041,6 +1043,10 @@ window.onYouTubeIframeAPIReady = function(){
     playerVars:{ rel:0, modestbranding:1, playsinline:1 },
     events:{
       onReady: () => {
+        try {
+          const f = ytPlayer.getIframe && ytPlayer.getIframe();
+          if (f) f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        } catch (err) {}
         applyVolume();
         if (queued){ const v = queued; queued = null; startYt(v); }
       },
@@ -1528,7 +1534,7 @@ function buildInline(){
     const media = t.videoId
       ? '<span style="position:relative;display:block;width:100%;max-width:420px;padding-top:min(56.25%,236px);'
         + 'margin:0 0 20px;background:' + FAINT + '">'
-        + '<iframe loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen'
+        + '<iframe loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen'
         + ' title="' + esc(t.title) + '" src="https://www.youtube.com/embed/' + t.videoId
         + '?autoplay=1&amp;rel=0&amp;modestbranding=1"'
         + ' style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block"></iframe></span>'
