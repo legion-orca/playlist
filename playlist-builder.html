@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>플레이리스트 만들기</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" as="style" crossorigin
@@ -251,6 +252,9 @@ iframe#preview{
 .btn.danger{color:#b91c1c;border-color:#f0d4d4}
 .btn.danger:hover{border-color:#dc2626;color:#dc2626}
 .sec.export{border-bottom:0;padding-bottom:28px}
+.savebox{margin-top:20px;padding-top:16px;border-top:1px solid var(--ui-line)}
+.savestate{font-size:11.5px;color:var(--ui-dim);line-height:1.7;margin:0 0 10px}
+.savestate.warn{color:#b45309}
 .toast{
   position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
   background:var(--ui-blue);color:#fff;padding:10px 18px;border-radius:999px;
@@ -421,8 +425,16 @@ iframe#preview{
       </div>
       <button class="btn btn-primary block" id="btnCopyTop">HTML 코드 복사</button>
       <button class="btn block" id="btnCode">HTML 코드 보기</button>
-      <button class="btn block" id="btnDownload">index.html 내려받기</button>
+      <button class="btn block" id="btnDownload">HTML 파일 내려받기</button>
       <button class="btn block danger" id="btnReset">전체 초기화</button>
+
+      <div class="savebox">
+        <p class="savestate" id="saveState">작업 내용은 이 브라우저에 자동으로 저장됩니다.</p>
+        <div class="btn-row">
+          <button class="btn btn-sm" id="btnSaveFile">작업 파일로 저장</button>
+          <label class="btn btn-sm">작업 파일 불러오기<input type="file" accept=".json,application/json" id="loadFile" hidden></label>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -442,7 +454,7 @@ iframe#preview{
 <div class="modal" id="codeModal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>index.html</h3>
+      <h3>HTML 코드</h3>
       <span class="grow" style="flex:1"></span>
       <button class="btn btn-sm" id="btnCopy">코드 복사</button>
       <button class="btn btn-sm" id="btnCloseModal">닫기</button>
@@ -466,6 +478,7 @@ iframe#preview{
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="__BG__">
 <title>__TITLE__</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -856,12 +869,12 @@ function ytId(url){
 function fmt(text){
   let h = esc(text);
   h = h.replace(/^\s*---\s*$/gm, "<hr>");
-  h = h.replace(/==([^\n]+?)==/g, '<mark>$1</mark>');
-  h = h.replace(/!!([^\n]+?)!!/g, '<span class="accent">$1</span>');
-  h = h.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/__([^\n]+?)__/g, '<u>$1</u>');
-  h = h.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
-  h = h.replace(/\*([^\n*]+?)\*/g, '<em>$1</em>');
+  h = h.replace(/==([\s\S]+?)==/g, '<mark>$1</mark>');
+  h = h.replace(/!!([\s\S]+?)!!/g, '<span class="accent">$1</span>');
+  h = h.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
+  h = h.replace(/~~([\s\S]+?)~~/g, '<s>$1</s>');
+  h = h.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
   return h;
 }
 
@@ -1030,6 +1043,10 @@ window.onYouTubeIframeAPIReady = function(){
     playerVars:{ rel:0, modestbranding:1, playsinline:1 },
     events:{
       onReady: () => {
+        try {
+          const f = ytPlayer.getIframe && ytPlayer.getIframe();
+          if (f) f.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+        } catch (err) {}
         applyVolume();
         if (queued){ const v = queued; queued = null; startYt(v); }
       },
@@ -1314,12 +1331,12 @@ const TPL = document.getElementById("pageTpl").textContent;
 function fmtText(text){
   let h = esc(text);
   h = h.replace(/^\s*---\s*$/gm, "<hr>");
-  h = h.replace(/==([^\n]+?)==/g, '<mark>$1</mark>');
-  h = h.replace(/!!([^\n]+?)!!/g, '<span class="accent">$1</span>');
-  h = h.replace(/\*\*([^\n]+?)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/__([^\n]+?)__/g, '<u>$1</u>');
-  h = h.replace(/~~([^\n]+?)~~/g, '<s>$1</s>');
-  h = h.replace(/\*([^\n*]+?)\*/g, '<em>$1</em>');
+  h = h.replace(/==([\s\S]+?)==/g, '<mark>$1</mark>');
+  h = h.replace(/!!([\s\S]+?)!!/g, '<span class="accent">$1</span>');
+  h = h.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
+  h = h.replace(/~~([\s\S]+?)~~/g, '<s>$1</s>');
+  h = h.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
   return h;
 }
 
@@ -1470,12 +1487,12 @@ function buildInline(){
   function fmtInline(text){
     let h = esc(text);
     h = h.replace(/^\s*---\s*$/gm, '<hr style="border:0;border-top:1px solid ' + LINE + ';margin:26px 0">');
-    h = h.replace(/==([^\n]+?)==/g, '<span style="background:' + HL + ';padding:0 .18em;border-radius:2px">$1</span>');
-    h = h.replace(/!!([^\n]+?)!!/g, '<span style="color:' + c.accent + '">$1</span>');
-    h = h.replace(/\*\*([^\n]+?)\*\*/g, '<span style="font-weight:600">$1</span>');
-    h = h.replace(/__([^\n]+?)__/g, '<span style="text-decoration:underline;text-underline-offset:4px">$1</span>');
-    h = h.replace(/~~([^\n]+?)~~/g, '<span style="text-decoration:line-through;opacity:.6">$1</span>');
-    h = h.replace(/\*([^\n*]+?)\*/g, '<span style="font-style:italic">$1</span>');
+    h = h.replace(/==([\s\S]+?)==/g, '<span style="background:' + HL + ';padding:0 .18em;border-radius:2px">$1</span>');
+    h = h.replace(/!!([\s\S]+?)!!/g, '<span style="color:' + c.accent + '">$1</span>');
+    h = h.replace(/\*\*([\s\S]+?)\*\*/g, '<span style="font-weight:600">$1</span>');
+    h = h.replace(/__([\s\S]+?)__/g, '<span style="text-decoration:underline;text-underline-offset:4px">$1</span>');
+    h = h.replace(/~~([\s\S]+?)~~/g, '<span style="text-decoration:line-through;opacity:.6">$1</span>');
+    h = h.replace(/\*([^*]+?)\*/g, '<span style="font-style:italic">$1</span>');
     return h;
   }
 
@@ -1517,7 +1534,7 @@ function buildInline(){
     const media = t.videoId
       ? '<span style="position:relative;display:block;width:100%;max-width:420px;padding-top:min(56.25%,236px);'
         + 'margin:0 0 20px;background:' + FAINT + '">'
-        + '<iframe loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen'
+        + '<iframe loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen'
         + ' title="' + esc(t.title) + '" src="https://www.youtube.com/embed/' + t.videoId
         + '?autoplay=1&amp;rel=0&amp;modestbranding=1"'
         + ' style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block"></iframe></span>'
@@ -1596,10 +1613,64 @@ function buildInline(){
 
 function output(){ return state.noJs ? buildInline() : buildPage(); }
 
+/* ---------- 중간저장 ---------- */
+const SAVE_KEY = "playlist-builder-state-v1";
+let saveTimer;
+
+function saveLocal(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      const t = new Date();
+      const hh = String(t.getHours()).padStart(2,"0");
+      const mm = String(t.getMinutes()).padStart(2,"0");
+      setSaveState("이 브라우저에 저장됨 · " + hh + ":" + mm, false);
+    } catch (err) {
+      setSaveState("자동 저장 실패 — 이미지가 너무 큽니다. 아래 \u0027작업 파일로 저장\u0027을 눌러 따로 보관하세요.", true);
+    }
+  }, 500);
+}
+function setSaveState(msg, warn){
+  const el = $("#saveState");
+  el.textContent = msg;
+  el.classList.toggle("warn", !!warn);
+}
+function fillState(obj){
+  if (!obj || typeof obj !== "object") return false;
+  ["eyebrow","title","sub","notesHead","titleBold","trackBold","noJs","scrollAfter"].forEach(k => {
+    if (obj[k] !== undefined) state[k] = obj[k];
+  });
+  ["colors","cover","glow","bgimg"].forEach(k => {
+    if (obj[k] && typeof obj[k] === "object") Object.assign(state[k], obj[k]);
+  });
+  if (Array.isArray(obj.tracks)){
+    state.tracks = obj.tracks.map(t => ({
+      title: t.title || "제목 없음",
+      artist: t.artist || "",
+      comment: t.comment || "",
+      art: t.art || "",
+      videoId: t.videoId || "",
+      mp3: t.mp3 || ""
+    }));
+  }
+  return true;
+}
+function syncAll(){
+  syncCover(); syncColors(); syncBg(); syncBold(); drawTracks();
+  $("#fEyebrow").value = state.eyebrow;
+  $("#fTitle").value = state.title;
+  $("#fSub").value = state.sub;
+  $("#fNotesHead").value = state.notesHead;
+  $("#fScroll").value = state.scrollAfter;
+  $("#noJs").setAttribute("aria-pressed", String(state.noJs));
+}
+
 let timer;
 function render(){
   clearTimeout(timer);
   timer = setTimeout(() => { $("#preview").srcdoc = output(); }, 240);
+  saveLocal();
 }
 
 /* ---------- 커버 ---------- */
@@ -1937,18 +2008,54 @@ $("#btnReset").addEventListener("click", () => {
   $("#fScroll").value = state.scrollAfter;
   $("#fYt").value = ""; $("#fAudio").value = "";
   $("#fTrackTitle").value = ""; $("#fArtist").value = ""; $("#fComment").value = "";
+  try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
   syncCover(); syncColors(); syncBg(); syncBold(); drawTracks();
   $("#preview").srcdoc = output();
+  setSaveState("작업 내용은 이 브라우저에 자동으로 저장됩니다.", false);
   toast("처음 상태로 돌아갔습니다");
 });
 
 $("#btnDownload").addEventListener("click", () => {
   const blob = new Blob([output()], { type:"text/html;charset=utf-8" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "index.html";
+  const name = safeName() + ".html";
+  a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
-  toast("index.html을 내려받았습니다");
+  toast(name + "을(를) 내려받았습니다");
+});
+
+function safeName(){
+  const n = (state.title || "playlist").replace(/[\\/:*?"<>|]/g, "").trim();
+  return n || "playlist";
+}
+
+$("#btnSaveFile").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = safeName() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("작업 파일을 저장했습니다");
+});
+
+$("#loadFile").addEventListener("change", e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const obj = JSON.parse(fr.result);
+      if (!fillState(obj)) throw new Error("형식이 맞지 않습니다");
+      syncAll(); render();
+      toast("작업 파일을 불러왔습니다");
+    } catch (err) {
+      toast("불러오지 못했습니다 — 작업 파일이 맞는지 확인해 주세요");
+    }
+  };
+  fr.readAsText(f);
 });
 
 $("#btnCode").addEventListener("click", () => {
@@ -1959,7 +2066,20 @@ $("#btnCloseModal").addEventListener("click", () => $("#codeModal").removeAttrib
 $("#codeModal").addEventListener("click", e => { if (e.target.id === "codeModal") $("#codeModal").removeAttribute("open"); });
 $("#btnCopy").addEventListener("click", () => copyHTML($("#codeArea").value));
 
-syncCover(); syncColors(); syncBg(); syncBold(); drawTracks();
+(function restore(){
+  let saved = null;
+  try { saved = localStorage.getItem(SAVE_KEY); } catch (err) {
+    setSaveState("이 브라우저에서는 자동 저장을 쓸 수 없습니다. \u0027작업 파일로 저장\u0027을 이용해 주세요.", true);
+    return;
+  }
+  if (!saved) return;
+  try {
+    fillState(JSON.parse(saved));
+    setSaveState("이전 작업을 불러왔습니다.", false);
+  } catch (err) {}
+})();
+
+syncAll();
 $("#preview").srcdoc = output();
 </script>
 </body>
